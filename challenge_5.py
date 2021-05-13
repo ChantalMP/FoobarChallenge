@@ -62,27 +62,43 @@ Output:
     254
 '''
 
-def compute_outcome(grid):
-    new_grid = [[False]*(len(grid)-1) for i in range(len(grid)-1)]
-    for i in range(len(grid)-1):
-        for j in range(len(grid)-1):
+def compute_2col_outcome(grid):
+    h = len(grid)
+    w = len(grid[0])
+    new_grid = [False*(w-1) for i in range(h-1)]
+    for i in range(h-1):
+        for j in range(w-1):
             if grid[i][j] + grid[i+1][j] + grid[i][j+1] + grid[i+1][j+1] == 1:
-                new_grid[i][j] = True
+                new_grid[i] = True
     return new_grid if len(new_grid) > 1 else new_grid[0]
 
-def solution(g):
-    dim = len(g)+1
-    lst = list(itertools.product([0, 1], repeat=dim*dim))
-    cnt = 0
+def column_predecessors(col):
+    res = []
+    lst = list(itertools.product([0, 1], repeat=(len(col)+1) * 2))
     for elem in lst:
         square = []
-        for i in range(0, len(elem)-dim+1, dim):
-            square.append(elem[i:i+dim])
-        out = compute_outcome(square)
-        if out == g:
-            cnt += 1
+        for i in range(0, len(elem), 2):
+            square.append(elem[i:i+2])
+        out = compute_2col_outcome(square)
+        if out == col:
+            res.append(square)
+    return res
 
-    return cnt
+def solution(g):
+    cols = [[row[i] for row in g] for i in range(len(g[0]))]
+    pre_cols_prev = column_predecessors(cols.pop(0)) #for first col
+    for col in cols:
+        pre_cols_curr = column_predecessors(col)
+        working_cols_curr = []
+        for idx, pre_col_curr in enumerate(pre_cols_curr):
+            for pre_col_prev in pre_cols_prev:
+                if [i[-1] for i in pre_col_prev] == [i[0] for i in pre_col_curr]:
+                    if pre_col_curr not in working_cols_curr:
+                        working_cols_curr.append([p[:-1] + pre_col_curr[idx]  for idx, p in enumerate(pre_col_prev)])
+        pre_cols_prev = working_cols_curr
+
+    return len(pre_cols_prev)
+
 
 if __name__ == '__main__':
     #compute_outcome([[True, False, False, False], [False, False, False, True], [False, False, True, False], [False, True, False, False]])
@@ -97,4 +113,6 @@ if __name__ == '__main__':
     #     output = compute_outcome(square)
     #     if output == wanted_outcome:
     #         print square
-    print(solution([[True, False, True, False, False, True, True, True], [True, False, True, False, False, False, True, False], [True, True, True, False, False, False, True, False], [True, False, True, False, False, False, True, False], [True, False, True, False, False, True, True, True]]))
+    #print(column_predecessors([False, True, False]))
+    #print(solution_naive([[True, False, True], [False, True, False], [True, False, True]]))
+    print(solution([[True, True, False, True, False, True, False, True, True, False], [True, True, False, False, False, False, True, True, True, False], [True, True, False, False, False, False, False, False, False, True], [False, True, False, False, False, False, True, True, False, False]]))
