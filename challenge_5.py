@@ -62,7 +62,10 @@ Output:
     254
 '''
 
-def compute_2col_outcome(grid):
+'''
+SOLUTION WITHOUT BINARY OPERATIONS
+'''
+def compute_2col_outcome_old(grid):
     h = len(grid)
     w = len(grid[0])
     new_grid = [False*(w-1) for i in range(h-1)]
@@ -72,23 +75,23 @@ def compute_2col_outcome(grid):
                 new_grid[i] = True
     return new_grid if len(new_grid) > 1 else new_grid[0]
 
-def column_predecessors(col):
+def column_predecessors_old(col):
     res = []
     lst = list(itertools.product([0, 1], repeat=(len(col)+1) * 2))
     for elem in lst:
         square = []
         for i in range(0, len(elem), 2):
             square.append(elem[i:i+2])
-        out = compute_2col_outcome(square)
+        out = compute_2col_outcome_old(square)
         if out == col:
             res.append(square)
     return res
 
-def solution(g):
+def solution_old(g):
     cols = [[row[i] for row in g] for i in range(len(g[0]))]
-    pre_cols_prev = column_predecessors(cols.pop(0)) #for first col
+    pre_cols_prev = column_predecessors_old(cols.pop(0)) #for first col
     for col in cols:
-        pre_cols_curr = column_predecessors(col)
+        pre_cols_curr = column_predecessors_old(col)
         working_cols_curr = []
         for idx, pre_col_curr in enumerate(pre_cols_curr):
             for pre_col_prev in pre_cols_prev:
@@ -99,20 +102,49 @@ def solution(g):
 
     return len(pre_cols_prev)
 
+'''
+SOLUTION WITH BINARY OPERATIONS
+'''
+def compute_2col_outcome(cols, height):
+    out = ""
+    for i in range(height, 0, -1):
+        # get ith and i+1th digit in both numbers
+        sum = ((cols[0] & (1 << i)) >> i) + ((cols[0] & (1 << (i-1))) >> (i-1)) + ((cols[1] & (1 << i)) >> i) + ((cols[1] & (1 << (i-1))) >> (i-1))
+        out += '1' if sum==1 else '0'
+    return int(out,2)
+
+def column_predecessors(col, height):
+    #all possible predecessors
+    res = []
+    lst = list(itertools.product((range(2**(height+1))),repeat=2))
+    for elem in lst:
+        out = compute_2col_outcome(elem, height)
+        if out == col:
+            res.append(elem)
+    return res
+
+def solution(g):
+    h = len(g)
+    cols = [int("".join([str(int(row[i])) for row in g]), 2) for i in range(len(g[0]))]
+    pre_cols_prev = column_predecessors(cols.pop(0), h)  # for first col
+    for col in cols:
+        pre_cols_curr = column_predecessors(col, h)
+        working_cols_curr = []
+        for idx, pre_col_curr in enumerate(pre_cols_curr):
+            for pre_col_prev in pre_cols_prev:
+                if pre_col_prev[-1] == pre_col_curr[0]:
+                        working_cols_curr.append(pre_col_prev[:-1]+pre_col_curr)
+        pre_cols_prev = working_cols_curr
+
+    return len(pre_cols_prev)
+
 
 if __name__ == '__main__':
-    #compute_outcome([[True, False, False, False], [False, False, False, True], [False, False, True, False], [False, True, False, False]])
-    #compute_outcome([[True, False], [False, False]])
-    # lst = list(itertools.product([0, 1], repeat=9))
-    # wanted_outcome = [[True, False], [False, False]]
-    # for elem in lst:
-    #     square = []
-    #     square.append(elem[0:3])
-    #     square.append(elem[3:6])
-    #     square.append(elem[6:9])
-    #     output = compute_outcome(square)
-    #     if output == wanted_outcome:
-    #         print square
-    #print(column_predecessors([False, True, False]))
-    #print(solution_naive([[True, False, True], [False, True, False], [True, False, True]]))
-    print(solution([[True, True, False, True, False, True, False, True, True, False], [True, True, False, False, False, False, True, True, True, False], [True, True, False, False, False, False, False, False, False, True], [False, True, False, False, False, False, True, True, False, False]]))
+    import time
+    input = [[True, True, False, True, False, True, False, True, True, False], [True, True, False, False, False, False, True, True, True, False], [True, True, False, False, False, False, False, False, False, True], [False, True, False, False, False, False, True, True, False, False]]
+    start = time.time()
+    print(solution(input))
+    print(time.time()-start)
+    start = time.time()
+    print(solution_old(input))
+    print(time.time()-start)
