@@ -1,4 +1,7 @@
 import itertools
+from collections import defaultdict
+
+import numpy as np
 
 '''
 Expanding Nebula
@@ -105,46 +108,49 @@ def solution_old(g):
 '''
 SOLUTION WITH BINARY OPERATIONS
 '''
+
+outcome_cache = {}
 def compute_2col_outcome(cols, height):
+    if cols in outcome_cache:
+        return outcome_cache[cols]
     out = ""
     for i in range(height, 0, -1):
         # get ith and i+1th digit in both numbers
         sum = ((cols[0] & (1 << i)) >> i) + ((cols[0] & (1 << (i-1))) >> (i-1)) + ((cols[1] & (1 << i)) >> i) + ((cols[1] & (1 << (i-1))) >> (i-1))
         out += '1' if sum==1 else '0'
-    return int(out,2)
+    out = int(out,2)
+    outcome_cache[cols] = out
+    return out
 
-def column_predecessors(col, height):
+def column_predecessors(col, height, res):
     #all possible predecessors
-    res = []
+    new_res = defaultdict(int)
     lst = list(itertools.product((range(2**(height+1))),repeat=2))
     for elem in lst:
         out = compute_2col_outcome(elem, height)
         if out == col:
-            res.append(elem)
-    return res
+            if res is None:
+                new_res[elem[1]] +=1
+            else:
+                for key in res:
+                    if elem[0] == key:
+                        new_res[elem[1]] += res[key]
+    return new_res
 
 def solution(g):
     h = len(g)
     cols = [int("".join([str(int(row[i])) for row in g]), 2) for i in range(len(g[0]))]
-    pre_cols_prev = column_predecessors(cols.pop(0), h)  # for first col
+    res = column_predecessors(cols.pop(0), h, None)  # for first col
     for col in cols:
-        pre_cols_curr = column_predecessors(col, h)
-        working_cols_curr = []
-        for idx, pre_col_curr in enumerate(pre_cols_curr):
-            for pre_col_prev in pre_cols_prev:
-                if pre_col_prev[-1] == pre_col_curr[0]:
-                        working_cols_curr.append(pre_col_prev[:-1]+pre_col_curr)
-        pre_cols_prev = working_cols_curr
+        res = column_predecessors(col, h, res)
 
-    return len(pre_cols_prev)
+    return sum(res.values())
 
 
 if __name__ == '__main__':
     import time
     input = [[True, True, False, True, False, True, False, True, True, False], [True, True, False, False, False, False, True, True, True, False], [True, True, False, False, False, False, False, False, False, True], [False, True, False, False, False, False, True, True, False, False]]
+    input = np.random.randint(0, 2, (7, 50))
     start = time.time()
     print(solution(input))
-    print(time.time()-start)
-    start = time.time()
-    print(solution_old(input))
     print(time.time()-start)
